@@ -1,0 +1,606 @@
+<html>
+<head>
+</head>
+<body>
+
+  <div id="top" style="
+    position: fixed;
+    top: 0px;
+    width: 100%;
+    height: 150px;
+    z-index: 0;">
+  <p id="text" style="
+    position: fixed;
+    top: -10px;
+    left: 0px;
+    right: 0px;
+    margin-right: auto;
+    margin-left: auto;
+    font-family:Times;
+    font-size: 50px;
+    text-align: center;
+    display:none;
+    z-index: 1;">
+    hello. how are you feeling?
+  </p>
+  </div>
+  <div id="bottom" style="
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+    height: 150px;
+    z-index: 0;">
+  <input id="input" spellcheck="false" style="
+  position: fixed;
+  bottom: 50px;
+  left: 0px;
+  right: 0px;
+  margin-right: auto;
+  margin-left: auto;
+  width: 100%;
+  font-size: 50px;
+  border-style:none;
+  outline: none;
+  font-family:Times;
+  text-align: center;
+  background: none;
+  display:none;
+  z-index: 1;">
+</div>
+<div id="cam">
+<video autoplay="true" id="video" style="position: fixed; top: -3000px;">
+</video>
+</div>
+<canvas id="canvas" style="margin:0; padding:0; position:fixed; display:none; z-index: -1;"></canvas>
+<p id="start" onclick="init();" style="
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -180%);
+  color: #bd0068;
+  font-family:Times;
+  font-size: 50px;
+  cursor: pointer;
+  text-align: center;
+  display:block;
+  z-index: 1;">begin</p>
+
+
+<script>
+
+var col1 = [237, 0, 174];
+var col2 = [0, 205, 237];
+var col_1 = col1;
+var col_2 = col2;
+var flipped = true;
+document.getElementById("text").style.color = rgbToHex(col1[0], col1[1], col1[2]);
+document.getElementById("input").style.color = rgbToHex(col1[0], col1[1], col1[2]);
+document.getElementById("top").style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+document.getElementById("bottom").style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+document.body.style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+
+//initialise
+var input = document.getElementById("input");
+var elem = document.documentElement;
+function init() {
+  document.getElementById("start").style.display = "none";
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) {
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) {
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    elem.msRequestFullscreen();
+  }
+  resizeCanvas();
+  document.getElementById("text").style.display = "block";
+  document.getElementById("input").style.display = "block";
+  document.getElementById("canvas").style.display = "block";
+  input.focus();
+  input.select();
+}
+
+//camera
+var video = document.getElementById("video");
+var aspect = video.getBoundingClientRect().height/video.getBoundingClientRect().width * 1.15;
+
+if (navigator.mediaDevices.getUserMedia) {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function (stream) {
+      video.srcObject = stream;
+    })
+    .catch(function (err0r) {
+    });
+}
+
+//canvas
+var c = document.getElementById("canvas");
+var ctx = c.getContext("2d");
+window.addEventListener('resize', resizeCanvas, false);
+
+function resizeCanvas() {
+        canvas.width = window.innerWidth * 0.8;
+        canvas.height = window.innerHeight - 300;
+        canvas.style.left = window.innerWidth * 0.1;
+        canvas.style.top = 150;
+        draw();
+}
+
+function draw() {
+  ctx.drawImage(video, 0, 0, window.innerWidth * 0.8, window.innerWidth * aspect);
+  var imgData = ctx.getImageData(0, 0, c.width, c.height);
+		var d = imgData.data;
+		for (var i = 0; i < d.length; i+=4) {
+			var r = d[i];
+			var g = d[i+1];
+			var b = d[i+2];
+			var v = (0.2126*r + 0.7152*g + 0.0722*b >= 100) ? 255 : 0;
+      if (v == 0) {
+        d[i] = col_1[0];
+        d[i+1] = col_1[1];
+        d[i+2] = col_1[2];
+      } else {
+        d[i] = col_2[0];
+        d[i+1] = col_2[1];
+        d[i+2] = col_2[2];
+      }
+		}
+		ctx.putImageData(imgData, 0, 0);
+  setTimeout(draw, 20);
+}
+
+//dictionaries
+const reflections = {
+  am: 'are',
+  was: 'were',
+  i: 'you',
+  im: 'you are',
+  id: 'you would',
+  ive: 'you have',
+  ill: 'you will',
+  my: 'your',
+  are: 'am',
+  wasnt : 'weren’t',
+  youve: 'i have',
+  youre: 'i’m',
+  youll: 'i’ll',
+  your: 'my',
+  yours: 'mine',
+  you: 'me',
+  me: 'you',
+  myself: 'yourself',
+  mine: 'yours'
+};
+
+var modifiers = [
+  'very',
+  'really',
+  'kind of',
+  'kinda',
+  'sort of',
+  'pretty',
+  'just',
+  'sorta',
+  'slightly',
+  'extremely',
+  'at all',
+  'recently',
+  'so',
+  'usually',
+  'sometimes',
+  'the past few days',
+  'the past few weeks',
+  'yesterday',
+  'lately',
+  'a bit',
+  'somewhat',
+  'occasionally',
+  'i suppose',
+  'i guess',
+  'maybe'];
+
+var connectives = [
+  'but',
+  'and',
+  'or'];
+
+var responses = {
+    '(.*)?lonely(.*)?':
+    [''],
+    '(.*)?alone(.*)?':
+    [''],
+    '(.*)?isolat(.*)?':
+    [''],
+    '(.*)?unwell(.*)?':
+    [''],
+    '(.*)?lockdown(.*)?':
+    [''],
+    '(.*)?quaran(.*)?':
+    [''],
+    '(.*)?pandemic(.*)?':
+    [''],
+    '(.*)?disease(.*)?':
+    [''],
+    '(.*)?corona(.*)?':
+    [''],
+    '(.*)?sick(.*)?':
+    [''],
+    '(.*)?covid(.*)?':
+    [''],
+    '(.*)?at risk(.*)?':
+    [''],
+    '(.*)?worr(.*)?':
+    [''],
+    '(.*)?fear(.*)?':
+    [''],
+    '(.*)?stress(.*)?':
+    [''],
+    '(.*)?unhappy(.*)?':
+    [''],
+    '(.*)?sad(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+    '(.*)?depress(.*)?':
+    [''],
+
+    '(.*)?i need (.*)?':
+     ['why do you need xx?',
+      'would it really help you to get xx?',
+      'are you sure you need xx?'],
+
+    '(.*)?i miss (.*)?':
+       ['how long have you been missing xx?',
+        'how long has it been?',
+        'why do you think you miss xx?'],
+
+    '(.*)?i wish(.*)?':
+      ['why do you wish xx?',
+      'what would you do if xx?'],
+
+    '(.*)?i cant wait(.*)?':
+      ['how long have you been waiting xx?'],
+
+    '(.*)?why cant i (.*)?':
+     ['do you think you should be able to xx?',
+      'if you could xx, what would you do?',
+      'i don’t know — why can’t you xx?',
+      'have you really tried?'],
+
+    '(.*)?i cant (.*)?':
+     ['how do you know you can’t xx?',
+      'perhaps you could xx if you tried.',
+      'what would it take for you to xx?'],
+
+    '(.*)?i am (.*)?':
+     ['did you come to me because you’re xx?',
+      'how long have you been xx?',
+      'how do you feel about being xx?'],
+
+    '(.*)?im feeling (.*)?':
+     ['tell me more about these feelings.',
+      'do you often feel xx?',
+      'when do you usually feel xx?',
+      'when you feel xx, what do you do?'],
+
+    '(.*)?im (.*)?':
+    ['did you come to me because you’re xx?',
+     'how long have you been xx?',
+     'how do you feel about being xx?'],
+
+    '(.*)?ive been feeling (.*)?':
+     ['tell me more about these feelings.',
+      'do you often feel xx?',
+      'when do you usually feel xx?',
+      'when you feel xx, what do you do?'],
+
+    '(.*)?ive been (.*)?':
+     ['did you come to me because you are xx?',
+      'how long have you been xx?',
+      'how do you feel about being xx?'],
+
+    '(.*)?are you (.*)?':
+     ['why does it matter whether i am xx?',
+      'would you prefer it if i were not xx?',
+      'perhaps you believe i am xx.',
+      'i may be xx — what do you think?'],
+
+    '(.*)?what (.*)?':
+     ['why do you ask?',
+      'how would an answer to that help you?',
+      'what do you think?'],
+
+    '(.*)?how (.*)?':
+     ['how do you suppose?',
+      'perhaps you can answer your own question.',
+      'what is it you’re really asking?'],
+
+    '(.*)?why (.*)?':
+     ['do you have any idea?',
+      'perhaps you can answer your own question.',
+      'what is it you’re really asking?'],
+
+    '(.*)?because (.*)?':
+     ['is that the real reason?',
+      'what other reasons come to mind?',
+      'does that reason apply to anything else?',
+      'if xx, what else must be true?'],
+
+    '(.*)? sorry (.*)?':
+     ['there are many times when no apology is needed.',
+      'what feelings do you have when you apologize?'],
+
+    '(.*)?hello (.*)?':
+     ['hello… i’m glad you could drop by today.',
+      'hi there… how are you today?',
+      'hello, how are you feeling today?'],
+
+    '(.*)?hi (.*)?':
+     ['hello… i’m glad you could drop by today.',
+      'hi there… how are you today?',
+      'hello, how are you feeling today?'],
+
+    '(.*)?i think (.*)?':
+     ['do you doubt xx?',
+      'do you really think so?',
+      'but you’re not sure xx?'],
+
+    '(.*)? friend (.*)?':
+     ['tell me more about your friends.',
+      'when you think of a friend, what comes to mind?',
+      'why don’t you tell me about a childhood friend?'],
+
+    'yes':
+     ['you seem quite sure.',
+      'ok, but can you elaborate a bit?'],
+
+    'yeah':
+     ['you seem quite sure.',
+      'ok, but can you elaborate a bit?'],
+
+    '(.*)?is it (.*)?':
+     ['do you think it is xx?',
+      'perhaps it’s xx — what do you think?',
+      'if it were xx, what would you do?',
+      'it could well be that xx.'],
+
+    '(.*)?it is (.*)?':
+     ['you seem very certain.'],
+
+     '(.*)?its (.*)?':
+      ['you seem very certain.'],
+
+    '(.*)?can i (.*)?':
+     ['perhaps you don’t want to xx.',
+      'do you want to be able to xx?',
+      'if you could xx, would you?'],
+
+    '(.*)?you are (.*)?':
+     ['why do you think i am xx?',
+      'does it please you to think that i’m xx?',
+      'perhaps you would like me to be xx.',
+      'perhaps you’re really talking about yourself?'],
+
+    '(.*)?youre (.*)?':
+     ['why do you say i am xx?',
+      'why do you think i am xx?',
+      'are we talking about you, or me?'],
+
+    '(.*)?i dont (.*)?':
+     ['don’t you really xx?',
+      'why don’t you xx?',
+      'do you want to xx?'],
+
+    '(.*)?i feel (.*)?':
+     ['good, tell me more about these feelings.',
+      'do you often feel xx?',
+      'when do you usually feel xx?',
+      'when you feel xx, what do you do?'],
+
+
+    '(.*)?i have (.*)?':
+     ['why do you tell me that you’ve xx?',
+      'have you really xx?',
+      'now that you have xx, what will you do next?'],
+
+    '(.*)?i would (.*)?':
+     ['could you explain why you would xx?',
+      'why would you xx?',
+      'who else knows that you would xx?'],
+
+    '(.*)?is there (.*)?':
+     ['do you think there is xx?',
+      'it’s likely that there is xx.',
+      'would you like there to be xx?'],
+
+    '(.*)?you (.*)?':
+     ['we should be discussing you, not me.',
+      'why do you say that about me?',
+      'why do you care whether i xx?'],
+
+    '(.*)?why (.*)?':
+     ['why don’t you tell me the reason why xx?',
+      'why do you think xx?'],
+
+    '(.*)?i want (.*)?':
+     ['what would it mean to you if you got xx?',
+      'why do you want xx?',
+      'what would you do if you got xx?',
+      'if you got xx, then what would you do?'],
+
+    '(.*)? mother(.*)?':
+     ['tell me more about your mother.',
+      'tell me about your relationship with your mother?',
+      'how do you feel about your mother?',
+      'how does this relate to your feelings today?',
+      'good family relations are important.'],
+
+    '(.*)? father(.*)?':
+     ['tell me more about your father.',
+      'how did your father make you feel?',
+      'how do you feel about your father?',
+      'does your relationship with your father relate to your feelings today?',
+      'do you have trouble showing affection with your family?'],
+
+    '(.*)? mum(.*)?':
+     ['tell me more about your mother.',
+      'tell me about your relationship with your mother?',
+      'how do you feel about your mother?',
+      'how does this relate to your feelings today?',
+      'good family relations are important.'],
+
+    '(.*)? dad(.*)?':
+     ['tell me more about your father.',
+      'how did your father make you feel?',
+      'how do you feel about your father?',
+      'does your relationship with your father relate to your feelings today?',
+      'do you have trouble showing affection with your family?'],
+
+    '(.*)? child(.*)?':
+     ['did you have close friends as a child?',
+      'what is your favorite childhood memory?',
+      'do you remember any dreams or nightmares from childhood?',
+      'did the other children sometimes tease you?',
+      'how do you think your childhood experiences relate to your feelings today?'],
+
+    'quit':
+    ['thank you for talking to me. good luck.',
+  'it was good talking to you'],
+
+    'bye':
+     ['thank you for talking to me. good luck.',
+   'it was good talking to you'],
+
+    'goodbye':
+    ['thank you for talking to me. good luck.',
+  'it was good talking to you'],
+};
+
+var standard = [
+'please tell me more.',
+'go on.',
+'can you elaborate on that?',
+'please continue.',
+'i see. please tell me more.',
+'i see.  and what does that tell you?',
+];
+
+//string processing
+function reflect(fragment) {
+  var words = fragment.split(" ");
+  for (var i = 0; i < words.length; i++) {
+    let word = words[i];
+    if (word in reflections) {
+      words[i] = reflections[word];
+    }
+  }
+  return words.join(' ');
+}
+
+
+function analyze(statement) {
+  for (var i = 0; i < modifiers.length; i++){
+    statement = statement.replace(" " + modifiers[i], "");
+    statement = statement.replace(modifiers[i], "");
+  }
+  var response;
+  for (var i = 0; i < Object.keys(responses).length; i++) {
+    var match = RegExp(Object.keys(responses)[i]).test(statement);
+    if (match) {
+      var response_array = responses[Object.keys(responses)[i]];
+      response = response_array[Math.floor(Math.random() * response_array.length)];
+      break;
+    }
+  }
+  if (match) {
+      var tail = reflect(RegExp.$2);
+      var tail_split = tail.split(" ");
+      var tail_final = [];
+      for (var i = 0; i < tail_split.length; i++) {
+        var isin = false;
+        for (var j = 0; j < connectives.length; j++) {
+          console.log(tail_split[i].localeCompare(connectives[j]));
+          if (tail_split[i].localeCompare(connectives[j]) == 0) {
+            isin = true;
+            break;
+          }
+        }
+        if (isin == true) {
+          break;
+        } else {
+          tail_final.push(tail_split[i]);
+        }
+      }
+      response = response.replace("xx", tail_final.join(' '));
+      return response;
+    }
+   else {
+      return standard[Math.floor(Math.random() * standard.length)];
+
+  }
+}
+
+//input
+function submit() {
+  var text = document.getElementById("text");
+  var input = document.getElementById("input").value.replace('\'','').toLowerCase();
+  text.innerHTML = analyze(input);
+  document.getElementById("input").value = '';
+  var rnd = Math.random();
+  if (rnd < 0.2) {
+    flip();
+  }
+}
+
+function flip() {
+  if (flipped) {
+    document.getElementById("text").style.color = rgbToHex(col2[0], col2[1], col2[2]);
+    document.getElementById("input").style.color = rgbToHex(col2[0], col2[1], col2[2]);
+    document.getElementById("top").style.backgroundColor = rgbToHex(col1[0], col1[1], col1[2]);
+    document.getElementById("bottom").style.backgroundColor = rgbToHex(col1[0], col1[1], col1[2]);
+    document.body.style.backgroundColor = rgbToHex(col1[0], col1[1], col1[2]);
+    col_1 = col2;
+    col_2 = col1;
+    flipped = false;
+  } else {
+    document.getElementById("text").style.color = rgbToHex(col1[0], col1[1], col1[2]);
+    document.getElementById("input").style.color = rgbToHex(col1[0], col1[1], col1[2]);
+    document.getElementById("top").style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+    document.getElementById("bottom").style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+    document.body.style.backgroundColor = rgbToHex(col2[0], col2[1], col2[2]);
+    col_1 = col1;
+    col_2 = col2;
+    flipped = true;
+  }
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+
+input.addEventListener("keyup", function(event) {
+  if (event.keyCode === 13) {
+    event.preventDefault();
+    submit();
+  }
+});
+
+</script>
+
+</body>
+
+</html>
